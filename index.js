@@ -22,17 +22,25 @@ const API_KEY =
  *  - Each option should display text equal to the name of the breed.
  * This function should execute immediately.
  */
-axios.defaults.headers.common["x-api-key"] =
-  "live_7HN3UDEIs21bl6zR1Lyha4pa32QTIUNiFjdwnavoyXaopP0mlzx3MUiGQhVKQhfw";
-axios.defaults.baseURL = "https://api.thecatapi.com/v1";
-
 async function initialLoad() {
   try {
     //console.log("Fetching breeds...");
-    const response = await axios.get("/breeds");
-    //console.log("Breeds fetched:", response.data);
+    const response = await fetch("https://api.thecatapi.com/v1/breeds", {
+      headers: {
+        "x-api-key": API_KEY,
+      },
+    });
 
-    const breeds = response.data;
+    //The ok property of the response object is a boolean that indicates if the HTTP status code is in the range of 200-299
+    //If Not OK, throws Error... -creates a new Error object - handled by try catch block
+    //response.status contains the HTTP status code of the response (e.g., 404 for "Not Found", 500 for "Internal Server Error").
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const breeds = await response.json();
+    //console.log("Breeds fetched:", breeds);
+
     const breedSelect = document.getElementById("breedSelect");
 
     //adding options to dropdown
@@ -42,20 +50,15 @@ async function initialLoad() {
       option.textContent = breed.name;
       breedSelect.appendChild(option);
     });
-
-    // trigger initial carousel population
-    if (breedSelect.options.length > 0) {
-      breedSelect.selectedIndex = 0; // Select first option
-      //dispatchEvent method is used to trigger the event on the specified element. This mimics the behavior as if the user had manually changed the selection in the dropdown.
-      const changeEvent = new Event("change");
-      breedSelect.dispatchEvent(changeEvent);
-    }
+    console.log("Select element populated");
 
     console.log("Total breeds added:", breeds.length);
   } catch (error) {
     console.error("Error loading breeds:", error);
   }
 }
+
+// Execute the function immediately
 initialLoad();
 
 /**
@@ -72,97 +75,6 @@ initialLoad();
  * - Each new selection should clear, re-populate, and restart the Carousel.
  * - Add a call to this function to the end of your initialLoad function above to create the initial carousel.
  */
-async function handleBreedChange(event) {
-  const breedId = event.target.value; //targetting dropdown
-  if (!breedId) return;
-
-  try {
-    // fetch breed information
-    const response = await axios.get(
-      `/images/search?breed_ids=${breedId}&limit=10`
-    );
-    const breedImages = response.data;
-    //make sure request is receiving multiple array items!
-    console.log(
-      `Received ${breedImages.length} images for the selected breed ID: ${breedId}`
-    );
-
-    //clear existing carousel
-    Carousel.clear();
-
-    //populate carousel with new images
-    breedImages.forEach((image) => {
-      const carouselItem = Carousel.createCarouselItem(
-        image.url,
-        `A ${image.breeds[0].name} cat`,
-        image.id
-      );
-      Carousel.appendCarousel(carouselItem);
-    });
-
-    //restart carousel
-    Carousel.start(); //invoking from Carousel module
-
-    //informational section population with first element
-    createInfoSection(breedImages[0].breeds[0]);
-  } catch (error) {
-    console.error("Error fetching breed information:", error);
-  }
-}
-
-function createInfoSection(breedInfo) {
-  const infoDump = document.getElementById("infoDump");
-  infoDump.innerHTML = ""; //clear existing content
-
-  const infoCard = document.createElement("div");
-  infoCard.className = "card mt-4";
-
-  const cardBody = document.createElement("div");
-  cardBody.className = "card-body";
-
-  const title = document.createElement("h2");
-  title.className = "card-title";
-  //console.log("name of breed: ", breedInfo.name);
-  title.textContent = breedInfo.name;
-
-  const description = document.createElement("p");
-  description.className = "card-text";
-  //console.log("breed description: ", breedInfo.description);
-  description.textContent = breedInfo.description;
-
-  const detailsList = document.createElement("ul");
-  detailsList.className = "list-group list-group-flush";
-  //list-group-flush is used to remove the default borders and rounded corners from the list items
-
-  const details = [
-    { label: "Origin", value: breedInfo.origin },
-    { label: "Temperament", value: breedInfo.temperament },
-    { label: "Life Span", value: `${breedInfo.life_span} years` },
-    { label: "Weight", value: `${breedInfo.weight.metric} kg` },
-  ];
-
-  details.forEach((detail) => {
-    const listItem = document.createElement("li");
-    listItem.className = "list-group-item";
-    listItem.innerHTML = `<strong>${detail.label}:</strong> ${detail.value}`;
-    detailsList.appendChild(listItem);
-  });
-
-  cardBody.appendChild(title);
-  cardBody.appendChild(description);
-  infoCard.appendChild(cardBody);
-  infoCard.appendChild(detailsList);
-  infoDump.appendChild(infoCard);
-}
-
-// Add event listener to breedSelect
-document
-  .getElementById("breedSelect")
-  .addEventListener("change", handleBreedChange);
-
-// Modify initialLoad function to trigger initial carousel population
-
-initialLoad();
 
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
